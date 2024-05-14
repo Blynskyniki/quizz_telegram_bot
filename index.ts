@@ -168,6 +168,7 @@ bot.onText(/\/help/, (msg: Message) => {
 // eslint-disable-next-line sonarjs/cognitive-complexity
 bot.on("poll_answer", (answer: PollAnswer) => {
   try {
+    console.log(answer.user);
     const userId = answer.user.id;
     const pollId = answer.poll_id;
     const questionIndex = questions.findIndex((q) => q.pollId === pollId);
@@ -176,7 +177,6 @@ bot.on("poll_answer", (answer: PollAnswer) => {
         answer.option_ids &&
         answer.option_ids[0] === questions[questionIndex].correctAnswer;
       if (!userResults[userId]) {
-        console.log(answer.user);
         userResults[userId] = {
           username: answer.user.username ?? "unknown",
           correctAnswers: correct ? 1 : 0,
@@ -353,9 +353,6 @@ async function createVoteResultsChart(votes: {
         },
       },
     };
-    console.log(
-      `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`,
-    );
 
     return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
   } catch (error) {

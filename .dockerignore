@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+README.md
+CHANGELOG.md
+eco/
+.run/
+coverage/
+doc/
+public/
+node_modules

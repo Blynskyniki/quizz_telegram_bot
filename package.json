@@ -5,26 +5,22 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "v2": "node v2.js",
+    "build": "rm -rf ./dist && ./node_modules/typescript/bin/tsc ",
+    "start": "node dist/index.js",
     "ts": "ts-node index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@lad-tech/eslint-config": "^0.0.18",
-    "@types/axios": "^0.14.0",
-    "@types/node-telegram-bot-api": "^0.64.6",
     "axios": "^1.6.8",
-    "canvas": "^2.11.2",
-    "chart.js": "^4.4.2",
-    "chartjs-node-canvas": "^4.1.6",
     "dotenv": "^16.4.5",
-    "google-spreadsheet": "^4.1.2",
     "node-telegram-bot-api": "^0.65.1"
   },
   "devDependencies": {
+    "@lad-tech/eslint-config": "^0.0.18",
+    "@types/axios": "^0.14.0",
+    "@types/node-telegram-bot-api": "^0.64.6",
     "@commitlint/cli": "^17.2.0",
     "@commitlint/config-conventional": "^17.2.0",
     "@semantic-release/changelog": "^6.0.1",
