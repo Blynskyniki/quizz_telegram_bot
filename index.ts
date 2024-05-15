@@ -8,7 +8,7 @@ import { Participant, Question, UserResult } from "./interfaces";
 dotenv.config();
 
 const token = process.env.BOT_TOKEN as string;
-const ADMIN_CHAT_ID = process.env.ADMIN_ID as string;
+const ADMIN_CHAT_ID = (process.env.ADMIN_ID as string).split(",");
 const CHANNEL_ID = process.env.CHANNEL_ID as string;
 const bot = new TelegramBot(token, { polling: true });
 
@@ -83,7 +83,7 @@ bot.onText(
   // eslint-disable-next-line sonarjs/cognitive-complexity
   async (msg: Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
-    if (msg.from && msg.from.id.toString() === ADMIN_CHAT_ID) {
+    if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
       if (match) {
         const spreadsheetUrl = match[1];
         if (spreadsheetUrl.startsWith("https://")) {
@@ -110,6 +110,10 @@ bot.onText(
       }
     } else {
       bot.sendMessage(chatId, TEXTS.NO_ACCESS);
+      bot.sendMessage(
+        chatId,
+        `Передайте ваш идентификатор ${msg?.from?.id.toString()} администратору`,
+      );
     }
   },
 );
@@ -119,7 +123,7 @@ bot.onText(
   /\/start_vote (.+)/,
   async (msg: Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
-    if (msg.from && msg.from.id.toString() === ADMIN_CHAT_ID) {
+    if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
       if (match) {
         try {
           const input = match[1];
@@ -139,6 +143,7 @@ bot.onText(
               is_anonymous: false,
             })
             .then(async () => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               participants.forEach((participant, index) => {
                 participantVotes[options[index]] = 0;
               });
@@ -201,15 +206,15 @@ bot.on("poll_answer", (answer: PollAnswer) => {
 // Обработка команды /results
 bot.onText(/\/results/, async (msg: Message) => {
   const chatId = msg.chat.id;
-  if (msg.from && msg.from.id.toString() === ADMIN_CHAT_ID) {
+  if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
     try {
       const resultsMessage = formatResultsTable(userResults);
       bot.sendMessage(chatId, resultsMessage, { parse_mode: "Markdown" });
-
-      const chartUrl = await createResultsChart(userResults);
-      bot.sendPhoto(chatId, chartUrl, {
-        caption: "График результатов викторины",
-      });
+      // FIXME: решили не отправлять пока картинку
+      // const chartUrl = await createResultsChart(userResults);
+      // bot.sendPhoto(chatId, chartUrl, {
+      //   caption: "График результатов викторины",
+      // });
     } catch (error) {
       console.error(TEXTS.RESULTS_SEND_ERROR, error);
       bot.sendMessage(chatId, TEXTS.RESULTS_SEND_ERROR);
@@ -222,7 +227,7 @@ bot.onText(/\/results/, async (msg: Message) => {
 // Обработка команды /vote_results
 bot.onText(/\/vote_results/, async (msg: Message) => {
   const chatId = msg.chat.id;
-  if (msg.from && msg.from.id.toString() === ADMIN_CHAT_ID) {
+  if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
     try {
       const chartUrl = await createVoteResultsChart(participantVotes);
       bot.sendPhoto(chatId, chartUrl, {
@@ -240,7 +245,7 @@ bot.onText(/\/vote_results/, async (msg: Message) => {
 // Обработка команды /clearresults
 bot.onText(/\/clearresults/, (msg: Message) => {
   const chatId = msg.chat.id;
-  if (msg.from && msg.from.id.toString() === ADMIN_CHAT_ID) {
+  if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
     try {
       for (const key in userResults) {
         delete userResults[key];
@@ -266,46 +271,6 @@ function formatResultsTable(results: { [key: string]: UserResult }): string {
   });
   table += "```\n";
   return table;
-}
-
-// Функция для создания графика результатов викторины
-async function createResultsChart(results: {
-  [key: string]: UserResult;
-}): Promise<string> {
-  try {
-    const labels = Object.values(results).map((userData) => userData.username);
-    const data = Object.values(results).map(
-      (userData) => userData.correctAnswers,
-    );
-
-    const chartConfig = {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Правильные ответы",
-            data: data,
-            backgroundColor: "rgba(54, 162, 235, 0.2)",
-            borderColor: "rgba(54, 162, 235, 1)",
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-          },
-        },
-      },
-    };
-
-    return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
-  } catch (error) {
-    console.error(TEXTS.QUIZ_RESULTS_GRAPH_ERROR, error);
-    throw new Error(TEXTS.QUIZ_RESULTS_GRAPH_ERROR);
-  }
 }
 
 // Функция для создания графика результатов голосования
@@ -360,20 +325,3 @@ async function createVoteResultsChart(votes: {
     throw new Error(TEXTS.VOTE_RESULTS_GRAPH_ERROR);
   }
 }
-
-// Вывод инструкции при неизвестной команде
-bot.on("message", (msg: Message) => {
-  const chatId = msg.chat.id;
-  const text = msg.text || "";
-
-  if (
-    !text.startsWith("/start") &&
-    !text.startsWith("/start_vote") &&
-    !text.startsWith("/results") &&
-    !text.startsWith("/vote_results") &&
-    !text.startsWith("/clearresults") &&
-    !text.startsWith("/help")
-  ) {
-    bot.sendMessage(chatId, TEXTS.UNKNOWN_COMMAND);
-  }
-});
