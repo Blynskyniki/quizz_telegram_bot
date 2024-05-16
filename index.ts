@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
 import TelegramBot, { Message, PollAnswer } from "node-telegram-bot-api";
+import * as xlsx from "xlsx";
 
 import { TEXTS } from "./constants";
 import { Participant, Question, UserResult } from "./interfaces";
@@ -79,7 +80,7 @@ async function sendQuizToChannel(questionIndex: number): Promise<void> {
 
 // Обработка команды /start
 bot.onText(
-  /\/start (.+)/,
+  /\/start_quizz (.+)/,
   // eslint-disable-next-line sonarjs/cognitive-complexity
   async (msg: Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
@@ -204,17 +205,21 @@ bot.on("poll_answer", (answer: PollAnswer) => {
 });
 
 // Обработка команды /results
-bot.onText(/\/results/, async (msg: Message) => {
+bot.onText(/\/quizz_results/, async (msg: Message) => {
   const chatId = msg.chat.id;
   if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
     try {
-      const resultsMessage = formatResultsTable(userResults);
-      bot.sendMessage(chatId, resultsMessage, { parse_mode: "Markdown" });
-      // FIXME: решили не отправлять пока картинку
-      // const chartUrl = await createResultsChart(userResults);
-      // bot.sendPhoto(chatId, chartUrl, {
-      //   caption: "График результатов викторины",
-      // });
+      const fileBuffer = formatResultsTable(userResults);
+      bot.sendDocument(
+        chatId,
+        fileBuffer,
+        {},
+        {
+          filename: "results.xlsx",
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      );
     } catch (error) {
       console.error(TEXTS.RESULTS_SEND_ERROR, error);
       bot.sendMessage(chatId, TEXTS.RESULTS_SEND_ERROR);
@@ -260,17 +265,43 @@ bot.onText(/\/clearresults/, (msg: Message) => {
   }
 });
 
-// Форматирование таблицы результатов
-function formatResultsTable(results: { [key: string]: UserResult }): string {
-  let table = "*Таблица результатов:*\n\n";
-  table += "```\n";
-  table += "Пользователь            | Всего вопросов | Правильных ответов\n";
-  table += "------------------------|----------------|-------------------\n";
+function formatResultsTable(results: {
+  [key: string]: {
+    username: string;
+    totalQuestions: number;
+    correctAnswers: number;
+  };
+}): Buffer {
+  // Создание новой рабочей книги
+  const workbook = xlsx.utils.book_new();
+
+  // Создание массива для данных таблицы
+  const data: (string | number)[][] = [
+    ["Пользователь", "Всего вопросов", "Правильных ответов"],
+  ];
+
+  // Заполнение массива данными из объекта results
   Object.values(results).forEach((userData) => {
-    table += `${userData.username}  | ${userData.totalQuestions}  | ${userData.correctAnswers}\n`;
+    data.push([
+      userData.username,
+      userData.totalQuestions,
+      userData.correctAnswers,
+    ]);
   });
-  table += "```\n";
-  return table;
+
+  // Создание нового рабочего листа на основе данных
+  const worksheet = xlsx.utils.aoa_to_sheet(data);
+
+  // Добавление рабочего листа в книгу
+  xlsx.utils.book_append_sheet(workbook, worksheet, "Results");
+
+  // Генерация буфера
+  const buffer: Buffer = xlsx.write(workbook, {
+    type: "buffer",
+    bookType: "xlsx",
+  });
+
+  return buffer;
 }
 
 // Функция для создания графика результатов голосования
@@ -325,3 +356,21 @@ async function createVoteResultsChart(votes: {
     throw new Error(TEXTS.VOTE_RESULTS_GRAPH_ERROR);
   }
 }
+
+bot.onText(/\/clear_vote_results/, (msg: Message) => {
+  const chatId = msg.chat.id;
+  if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
+    try {
+      // Очистка результатов голосования
+      for (const key in participantVotes) {
+        delete participantVotes[key];
+      }
+      bot.sendMessage(chatId, TEXTS.CLEAR_VOTE_RESULTS_SUCCESS);
+    } catch (error) {
+      console.error(TEXTS.CLEAR_VOTE_RESULTS_ERROR, error);
+      bot.sendMessage(chatId, TEXTS.CLEAR_VOTE_RESULTS_ERROR);
+    }
+  } else {
+    bot.sendMessage(chatId, TEXTS.NO_ACCESS);
+  }
+});
