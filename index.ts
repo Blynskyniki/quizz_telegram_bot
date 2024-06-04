@@ -374,3 +374,21 @@ bot.onText(/\/clear_vote_results/, (msg: Message) => {
     bot.sendMessage(chatId, TEXTS.NO_ACCESS);
   }
 });
+bot.onText(/\/get_chatID/, (msg: Message) => {
+  const chatId = msg.chat.id;
+
+  if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
+    try {
+      // Очистка результатов голосования
+      for (const key in participantVotes) {
+        delete participantVotes[key];
+      }
+      bot.sendMessage(chatId, `Идентификатор:${chatId}`);
+    } catch (error) {
+      console.error(TEXTS.CLEAR_VOTE_RESULTS_ERROR, error);
+      bot.sendMessage(chatId, TEXTS.CLEAR_VOTE_RESULTS_ERROR);
+    }
+  } else {
+    bot.sendMessage(chatId, TEXTS.NO_ACCESS);
+  }
+});
