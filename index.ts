@@ -379,10 +379,6 @@ bot.onText(/\/get_chatID/, (msg: Message) => {
 
   if (msg.from && ADMIN_CHAT_ID.includes(msg.from.id.toString())) {
     try {
-      // Очистка результатов голосования
-      for (const key in participantVotes) {
-        delete participantVotes[key];
-      }
       bot.sendMessage(chatId, `Идентификатор:${chatId}`);
     } catch (error) {
       console.error(TEXTS.CLEAR_VOTE_RESULTS_ERROR, error);
