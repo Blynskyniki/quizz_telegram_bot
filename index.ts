@@ -198,6 +198,10 @@ async function main() {
                   for (const key in userResults) {
                     delete userResults[key];
                   }
+                  await bot.sendMessage(
+                    process.env.POST_CHANEL_ID || "",
+                    `Голосование началось, перейдите в группу https://t.me/kskpassagechat`,
+                  );
                   await sendQuizToChannel(0);
 
                   bot.sendMessage(chatId, TEXTS.QUIZ_STARTED);
@@ -245,6 +249,10 @@ async function main() {
               for (const key in participantVotes) {
                 delete participantVotes[key];
               }
+              await bot.sendMessage(
+                process.env.POST_CHANEL_ID || "",
+                `Голосование началось, перейдите в группу https://t.me/kskpassagechat`,
+              );
 
               bot
                 .sendPoll(
