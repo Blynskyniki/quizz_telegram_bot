@@ -111,9 +111,7 @@ async function main() {
     const CHANNEL_ID = process.env.CHANNEL_ID as string;
     const bot = new TelegramBot(token, {
       polling: {
-        params: {
-          allowed_updates: ["message", "channel_post", "edited_channel_post"],
-        },
+        interval: 500,
       },
     });
 
@@ -447,12 +445,3 @@ async function main() {
 
 main();
 console.log("bot started");
-process.on("uncaughtException", function (error) {
-  console.log("\x1b[31m", "Exception: ", error, "\x1b[0m");
-  process.exit(1);
-});
-
-process.on("unhandledRejection", function (error: any, p) {
-  console.log("\x1b[31m", "Error: ", error.message, "\x1b[0m");
-  process.exit(1);
-});
