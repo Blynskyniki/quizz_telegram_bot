@@ -446,4 +446,13 @@ async function main() {
 }
 
 main();
-console.log("started");
+console.log("bot started");
+process.on("uncaughtException", function (error) {
+  console.log("\x1b[31m", "Exception: ", error, "\x1b[0m");
+  process.exit(1);
+});
+
+process.on("unhandledRejection", function (error: any, p) {
+  console.log("\x1b[31m", "Error: ", error.message, "\x1b[0m");
+  process.exit(1);
+});
