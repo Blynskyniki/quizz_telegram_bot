@@ -264,10 +264,8 @@ async function main() {
                 process.env.POST_CHANEL_ID || "",
                 `Голосование началось, перейдите в группу https://t.me/kskpassagechat`,
               );
-              console.log(options);
               for (let i = 0; i < options.length; i += 10) {
                 const chunk = options.slice(i, i + 10).filter((item) => !!item);
-                console.log(chunk, chunk.length);
                 await bot
                   .sendPoll(
                     CHANNEL_ID,
@@ -311,7 +309,6 @@ async function main() {
     // eslint-disable-next-line sonarjs/cognitive-complexity
     bot.on("poll_answer", (answer: PollAnswer) => {
       try {
-        console.log(answer);
         const userId = answer.user.id;
         const pollId = answer.poll_id;
         const questionIndex = questions.findIndex((q) => q.pollId === pollId);
@@ -424,7 +421,6 @@ async function main() {
 
     bot.on("channel_post", (msg) => {
       const { id, title, username } = msg.chat;
-      console.log(msg);
       if (msg?.text?.includes("/get_chatID")) {
         ADMIN_CHAT_ID.forEach((id) =>
           bot.sendMessage(
