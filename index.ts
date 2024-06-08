@@ -121,7 +121,10 @@ async function main() {
     let participants: Participant[] = [];
     // Функция для отправки вопросов викторины в канал
     // eslint-disable-next-line no-inner-declarations
-    async function sendQuizToChannel(questionIndex: number): Promise<void> {
+    async function sendQuizToChannel(
+      questionIndex: number,
+      chatId: string,
+    ): Promise<void> {
       const question = questions[questionIndex];
       try {
         const data = await bot.sendPoll(
@@ -139,14 +142,18 @@ async function main() {
         questions[questionIndex].pollId = data.poll!.id;
         // Отправить следующий вопрос, если остались вопросы
         if (questionIndex + 1 < questions.length) {
-          sendQuizToChannel(questionIndex + 1);
+          sendQuizToChannel(questionIndex + 1, chatId);
         }
       } catch (error) {
         console.error(TEXTS.QUIZ_SEND_ERROR, error);
+        if (error instanceof Error) {
+          bot.sendMessage(chatId, `Ошибка : ${error?.message}`);
+        }
       }
     }
 
     // Функция для загрузки вопросов из Google Sheets
+    // eslint-disable-next-line no-inner-declarations
     async function loadQuestionsFromSheet(
       spreadsheetUrl: string,
     ): Promise<void> {
@@ -202,7 +209,7 @@ async function main() {
                     process.env.POST_CHANEL_ID || "",
                     `Голосование началось, перейдите в группу https://t.me/kskpassagechat`,
                   );
-                  await sendQuizToChannel(0);
+                  await sendQuizToChannel(0, chatId.toString());
 
                   bot.sendMessage(chatId, TEXTS.QUIZ_STARTED);
                 } else {
@@ -249,33 +256,41 @@ async function main() {
               for (const key in participantVotes) {
                 delete participantVotes[key];
               }
+              options.forEach((key) => {
+                participantVotes[key] = 0;
+              });
+
               await bot.sendMessage(
                 process.env.POST_CHANEL_ID || "",
                 `Голосование началось, перейдите в группу https://t.me/kskpassagechat`,
               );
-
-              bot
-                .sendPoll(
-                  CHANNEL_ID,
-                  "Голосуйте за лучшего участника:",
-                  options,
-                  {
-                    is_anonymous: false,
-                  },
-                )
-                .then(async () => {
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  participants.forEach((participant, index) => {
-                    participantVotes[options[index]] = 0;
+              console.log(options);
+              for (let i = 0; i < options.length; i += 10) {
+                const chunk = options.slice(i, i + 10).filter((item) => !!item);
+                console.log(chunk, chunk.length);
+                await bot
+                  .sendPoll(
+                    CHANNEL_ID,
+                    "Голосуйте за лучшего участника:",
+                    chunk,
+                    {
+                      is_anonymous: false,
+                    },
+                  )
+                  .then(async () => {
+                    await bot.sendMessage(chatId, TEXTS.VOTE_STARTED);
+                  })
+                  .catch(async (error) => {
+                    console.error(TEXTS.VOTE_SEND_ERROR, error.message);
+                    await bot.sendMessage(
+                      chatId,
+                      TEXTS.VOTE_SEND_ERROR + `${error.message}`,
+                    );
                   });
-                  await bot.sendMessage(chatId, TEXTS.VOTE_STARTED);
-                })
-                .catch(async (error) => {
-                  console.error(TEXTS.VOTE_SEND_ERROR, error);
-                  await bot.sendMessage(chatId, TEXTS.VOTE_SEND_ERROR);
-                });
+              }
             } catch (error) {
-              console.error(TEXTS.VOTE_COMMAND_ERROR, error);
+              // @ts-ignore
+              console.error(TEXTS.VOTE_COMMAND_ERROR, error.message);
               bot.sendMessage(chatId, TEXTS.VOTE_COMMAND_ERROR);
             }
           }
